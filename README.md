@@ -1,6 +1,6 @@
 # TabM bCCNN reserving
 
-An R port (keras3 1.5.1 on the torch backend) of the TabM framework applied to the bCCNN. 
+The TabM framework applied to the bCCNN, in R (keras3 1.5.1 on the torch backend).
 
 > **bCCNN.** Gabrielli, A. (2020), *Claims reserving and neural networks*, PhD thesis ETH Zürich,
 > Chapter 4 and Paper C (Gabrielli, Richman & Wüthrich 2020, *Neural network embedding of the
@@ -11,10 +11,9 @@ An R port (keras3 1.5.1 on the torch backend) of the TabM framework applied to t
 > parameter-efficient ensembling*, ICLR 2025. k weight-sharing "submodels" trained together in one
 > network, prediction = mean of the k outputs.
 
-The mathematics is written out in the Python project's `TabM_bCCNN_explained.md`; its equations
-(T1)–(T8), cited in the code, are summarised under [Model notes](#model-notes) (see below). The data is the
-thesis's seed-75 simulation (six lines of business, 12 × 12 triangles), a byte-identical copy of the
-Python project's CSV.
+The TabM equations (T1)–(T8), cited in the code, are summarised under [Model notes](#model-notes)
+(see below). The data is the thesis's seed-75 simulation (six lines of business, 12 × 12
+triangles).
 
 ## The six configurations
 
@@ -62,8 +61,7 @@ mean of the k individual losses), Keras `rmsprop` defaults, full batch, dropout 
 - `config.yml`: paths, data, splits, hyper-parameters, configurations, stopping rules, bootstrap
   (read with `config::get()`; profiles `default` and `quick`)
 - `data/raw` (never edited) -> `data/processed`
-  - `data/raw`: `simulated_claims.csv` and `simulation_manifest.json` (copies of the Python
-    project's)
+  - `data/raw`: `simulated_claims.csv` and `simulation_manifest.json` (its seed and settings)
   - `data/processed`: checkpoints (`<prefix>_curves/`, `_refits/`, `_bootstrap/`) and what the
     later scripts read back (`<prefix>_selection.json`, `_curves.rds`, `_means.rds`);
     `data/processed/quick` for the quick profile
@@ -83,8 +81,8 @@ mean of the k individual losses), Keras `rmsprop` defaults, full batch, dropout 
 | R | 4.6.1 | `C:\Program Files\R\R-4.6.1\bin\Rscript.exe` |
 | keras3 (R) | 1.5.1 | newest on CRAN at 24 Sep 2026 |
 | reticulate | 1.46.0 | Python at `C:/Users/frang/.venvs/dlfa/Scripts/python.exe` |
-| keras (Python) | 3.15.1 | upgraded from 3.15.0 for this port: `python -m pip install --upgrade keras==3.15.1` |
-| torch (Python) | 2.12.1 CPU | the Keras backend; the same venv serves the Python project and the earlier R port |
+| keras (Python) | 3.15.1 | `python -m pip install --upgrade keras==3.15.1` |
+| torch (Python) | 2.12.1 CPU | the Keras backend |
 
 `KERAS_BACKEND=torch` and `RETICULATE_PYTHON` must be set **before** keras3 is loaded;
 `analysis/00_setup.R` sets them from `config.yml` (`keras:`) before it sources `R/`, and `.Rprofile`
@@ -96,7 +94,7 @@ trying to load TensorFlow, which is not installed.
   (6 LoBs, 12 development years, first accident year 1994, payments in thousands), `split`,
   `holdout`, the file `prefix` of each split, `epochs` per split, `seeds`, the `bccnn`
   hyper-parameters, `tabm: k`, `configs`, `pretty`, `stopping`, `bootstrap`, `force`, the Keras
-  Python and backend, and `python_project` (the Python project, read by the parity tests).
+  Python and backend.
 - Profiles (`R_CONFIG_ACTIVE`):
   - `default`: the full run, outputs in `data/processed` and `output/`: 6,000 steps (time-aware) /
     2,000 steps (claim-level), 5 seeds, k = 20, 25 bootstrap replicates
@@ -334,11 +332,10 @@ mu_bar(i,j)  = (1/k) sum_l mu^(l)(i,j)                                   the Tab
   U(±sqrt(6 / (q_in + q_out))) like an ordinary dense kernel; it also holds the k heads of every
   ensemble.
 - The k copies of z_0: (n, 2) → (n, 1, 2) → (n, k, 2) (`z0_row`, `copy_to_submodels`). Dropout on the
-  3-D tensor draws an independent mask for every (cell, submodel, unit), as `nn.Dropout` does in
-  Python.
+  3-D tensor draws an independent mask for every (cell, submodel, unit).
 - Trainable parameters: 490 + 138 k for `tabm` (3,250 at k = 20), 546 k for `packed` (10,920) and 547
   for the single bCCNN (the 24 frozen embedding weights not counted).
-- The layer names are fixed, because the weights-parity test loads the Python weights by name: `be1`
+- The layer names are fixed, because the tests look the weights up by name: `be1`
   .. `be3` (tabm), `packed1` .. `packed3` (packed), `head`.
 
 ### Training and curves (Listing 4; `nn_fit()`)
@@ -419,17 +416,13 @@ step count per configuration comes out; every function returns a 0-based step co
 |---|---|
 | `test-aggregation.R` | Listing 2: the split is balanced within LoB and accident year and partitions the claims, the halves sum to the full triangle; Listing 3: shape, 78 observed cells, non-negative payments, thousands; the run-off mask; `train_cells()` is row-major and `future_cells()` its complement |
 | `test-ccodp.R` | ccODP == chain ladder of the ChainLadder package (`cl_reserves()`): total to 1e-10, by accident year to 1e-9; corner parametrisation; phi = deviance / 55; over-dispersion; the fitted means sum to the observations; zero deviance at saturation |
-| `test-parity-python-data.R` | the claims CSV is byte-identical (md5) to the Python project's; claim counts of Paper C Table 1; same triangles |
 | `test-time-split.R` | 55/17 cells, the 6 excluded cells, no overlap; the training sub-triangle's ccODP is its chain ladder (ChainLadder) |
 | `test-early-stopping.R` | minimum and elbow rules against brute-force definitions; pooled curve, window edge, smoothing, averaging over seeds |
 | `test-tabm-layers.R` | (T2) per-submodel identity of the BatchEnsemble layer; packed layer; TabM initialisation (random first adapter, ones elsewhere, zero heads); parameter counts 3,250 / 10,920 / 547; weight order and names |
 | `test-tabm-init.R` | (T6) every submodel of every configuration starts at the ccODP means on all six LoBs; zero steps = chain ladder; training lowers the deviance; Jensen; snapshots; frozen embeddings; k = 1 packed = plain network; the single bCCNN through the same interface |
 | `test-tabm-history.R` | the individual validation deviance recorded by `nn_fit()` == 2·n·Keras `poisson` loss + constant after every step, against a same-seed manual `fit()` whose callback evaluates `loss_poisson()` on the validation cells with dropout off; `evaluate()` after the last step agrees |
 | `test-bootstrap.R` | sampler moments, dispersion floor, ccODP bootstrap scale, reproducible ensemble bootstrap |
-| **`test-parity-python-weights.R`** | with the Python-trained weights loaded (`scripts/16_export_r_parity.py` in the Python project), every configuration reproduces the Python predictions **exactly** (max relative gap 0.0 on all six) |
-| `test-parity-python-results.R` | cross-project table checks once both runs exist: same held-out cells and ccODP start; true and chain-ladder reserves agree; the ensembles' 300-step reserves within 3 % per LoB and 1.5 % in total |
 
-The parity tests read the Python project at `python_project` of `config.yml` and skip without it.
 The tests of the removed input checks (negative payments, non-square triangles, silly hold-outs) went
 with those checks.
 
@@ -469,7 +462,7 @@ RESULTS_PLACEHOLDER
   `model(x, training = FALSE)` calls, which draw nothing.
 * Torch's thread count changes the `packed_tanh` einsum at about 1e-8 relative: bit-identical reruns
   need the same thread setting (`run_all.ps1 -Quick` passes none).
-* One full-batch step on 78 cells costs ~33 ms at k = 20 in keras3 (PyTorch: 4 ms); the recorder adds
+* One full-batch step on 78 cells costs ~33 ms at k = 20 in keras3; the recorder adds
   ~15 ms; hence the parallel-by-configuration chain.
 * PowerShell 5.1 has no `&&`; `Start-Process` joins its `-ArgumentList` without quoting, so
   `run_all.ps1` quotes the script paths (the folders have spaces) and passes `-WorkingDirectory` so

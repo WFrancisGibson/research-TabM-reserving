@@ -69,7 +69,7 @@ odps <- lapply(lob_data, function(d) ccodp_fit(d$full))
 for (label in labels) {
   sel <- selection$configs[[label]]
   # the paper's 300 is capped at the search window (quick profile) and
-  # named "300", as the Python tables name it
+  # named "300", the step count of Paper C Sec. 3.3.3
   stops <- c(protocol = as.integer(sel$shared_epoch),
              elbow = as.integer(sel$elbow_epoch),
              "300" = as.integer(min(cfg$stopping$fixed, epochs)))

@@ -55,7 +55,7 @@ test_that("PackedLinear is k linear maps with Glorot-bounded kernels", {
       matrix(w[[2]][l, ], 9L, q_out, byrow = TRUE)
     expect_equal(out[, l, ], expected, tolerance = 1e-5)
   }
-  # the Python initialiser: U(-b, b) with Glorot's b on every q_in x q_out
+  # TabM's initialiser: U(-b, b) with Glorot's b on every q_in x q_out
   # slice (Keras's glorot_uniform on the 3-D kernel has k times the fans)
   b <- sqrt(6 / (q_in + q_out))
   expect_true(max(abs(w[[1]])) <= b)

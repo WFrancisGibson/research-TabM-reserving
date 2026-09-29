@@ -1,6 +1,6 @@
 default:
   paths:                 # relative to the project root (here::here)
-    raw: data/raw        # simulated_claims.csv: the Python project's seed-75 copy (never edited)
+    raw: data/raw        # simulated_claims.csv: the seed-75 claims simulation (never edited)
     processed: data/processed  # checkpoints tabm_<split>_curves/_refits/_bootstrap, selection,
                                # curves and submodel means read by the later scripts
     tables: output/tables
@@ -9,7 +9,6 @@ default:
   keras:                 # absolute paths, so not under paths (here::here would prefix the root)
     python: C:/Users/frang/.venvs/dlfa/Scripts/python.exe
     backend: torch       # Keras 3 on torch (CPU); TensorFlow is not installed
-  python_project: "C:/Users/frang/OneDrive/Masters/Research/Python research/bCCNN embedding of the ccODP reserving model"
   force: false           # true: redo the checkpoints that exist
   data:                  # Paper C Listing 3
     n_lob: 6             # lines of business
@@ -20,7 +19,7 @@ default:
   split: time-aware      # validation split of scripts 02-05 run without arguments:
                          # time-aware or claim-level (Paper C's 50/50 claims split)
   holdout: 2             # time-aware split: the last 2 calendar years (55 / 17 cells)
-  prefix:                # file-name prefix of each split's outputs (the Python names)
+  prefix:                # file-name prefix of each split's outputs
     time-aware: tabm_time_aware
     claim-level: tabm_claim_split
   epochs:                # stage-1 search window (full-batch gradient descent steps)

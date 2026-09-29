@@ -2,7 +2,6 @@
 #########  Claims reserving triangles
 #########  Paper C: Gabrielli, Richman & Wuthrich (2020), Listings 2 and 3
 #########  time-aware split: the last calendar years held out
-#########  (the Python project's src/time_split.py)
 ##########################################
 
 ## the n x n incremental payments (future cells included: simulated data) and
@@ -18,7 +17,7 @@ runoff_mask <- function(n) {
 }
 
 ## (i, j, y) of the cells of mask, 0-based, in row-major order (i slowest):
-## the order of numpy's np.where and of the Python batches
+## the order of the network inputs
 train_cells <- function(tri, mask = tri$train_mask) {
   n <- nrow(tri$incremental)
   grid <- expand.grid(j = seq_len(n) - 1L, i = seq_len(n) - 1L)

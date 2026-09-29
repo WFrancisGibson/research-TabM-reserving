@@ -110,7 +110,7 @@ fwrite(sub_reserves,
 #########  comparison tables
 ##########################################
 
-## reserves per LoB and in total (the Python project's tabm_summary tables):
+## reserves per LoB and in total (the tabm_summary tables):
 ## protocol stop and 300 steps, and all three stopping rules
 stem <- paste0("tabm_summary_", sub("^tabm_", "", prefix))
 rule_sets <- list(c("protocol", "300"), c("protocol", "elbow", "300"))

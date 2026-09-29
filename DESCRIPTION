@@ -1,12 +1,11 @@
 Package: tabmBccnnR
 Type: Project
-Title: R + Keras 3 port of the TabM-bCCNN claims reserving ensembles
+Title: TabM-bCCNN claims reserving ensembles in R with Keras 3
 Version: 0.1.0
 Description: The blended cross-classified network of Gabrielli (2020, Ch. 4 /
     Paper C) fitted as a TabM weight-sharing ensemble (Gorishniy et al. 2025),
-    under a time-aware and the thesis's claim-level validation split, ported
-    from the Python project "bCCNN embedding of the ccODP reserving model" to
-    R with the keras3 package (1.5.1) on the torch backend. The code follows
+    under a time-aware and the thesis's claim-level validation split, in R
+    with the keras3 package (1.5.1) on the torch backend. The code follows
     the style of Masters-Research-R. This file lists the packages used (and
     lets here::here() find the project root).
 Imports:

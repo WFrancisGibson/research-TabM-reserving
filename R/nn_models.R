@@ -114,7 +114,7 @@ bccnn_model <- function(odp, param) {
   cc0 <- list(ay_embed, dy_embed) %>% layer_add(name = "CC0")
   #
   # the 3 tanh hidden layers of the NN part, Keras's glorot_uniform kernels
-  # (INFERRED: the Python bCCNN has torch's default initialiser)
+  # (INFERRED: Listing 4 does not name the initialiser)
   nn0 <- concate0 %>%
     layer_dense(units = q0[1], activation = "tanh", name = "hidden1") %>%
     layer_dropout(rate = param$dropout, name = "dropout1") %>%
@@ -197,7 +197,7 @@ tabm_model <- function(odp, param) {
     if (param$kind == "tabm") {
       # TabM Sec. 3.2 and App. A.2: the first adapter r starts at random
       # signs or N(0, 1), every other adapter at 1
-      # (INFERRED: drawn from R's RNG, Python draws from torch's)
+      # (INFERRED: drawn from R's RNG with the run's seed)
       r1 <- NULL
       if (d == 1) {
         r1 <- if (param$r1_init == "signs") {

@@ -1,7 +1,7 @@
 ##########################################
 #########  Early stopping: stopping rules on the validation curves
 #########  thesis rule: minimum of the smoothed curve (Gabrielli 2020);
-#########  slope elbow: the Python project's scripts/15_time_aware_elbow.py
+#########  slope elbow: first step after which the gain flattens (INFERRED)
 ##########################################
 
 ## a curve holds entry 1 = the ccODP start (0 steps) and entry e + 1 = after

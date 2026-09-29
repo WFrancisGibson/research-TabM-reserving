@@ -12,7 +12,7 @@ n <- cfg$data$n_dev
 #########  load data
 ##########################################
 
-## the individual claims (the Python project's seed-75 simulation), the
+## the individual claims (the seed-75 simulation, Paper C Table 1), the
 ## triangles of the six LoBs (Listings 2 and 3) and their time-aware splits
 claims <- fread(file.path(paths$raw, "simulated_claims.csv"))
 lob_data <- lob_triangles(claims, cfg$data)

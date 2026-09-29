@@ -1,6 +1,5 @@
 ##########################################
 #########  checks of the time-aware validation split (R/triangles.R)
-#########  the Python project's tests/test_time_split.py
 ##########################################
 
 test_that("counts and geometry on a 12 x 12 triangle", {
