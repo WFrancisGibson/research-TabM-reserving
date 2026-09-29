@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.18">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>readme</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="README_files/libs/clipboard/clipboard.min.js"></script>
+<script src="README_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="README_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="README_files/libs/quarto-html/popper.min.js"></script>
+<script src="README_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="README_files/libs/quarto-html/anchor.min.js"></script>
+<link href="README_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="README_files/libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="README_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="README_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="README_files/libs/bootstrap/bootstrap-215b371544c282197b31c8aa00ce3677.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="fullcontent quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+
+
+
+<section id="tabm-bccnn-reserving" class="level1">
+<h1>TabM bCCNN reserving</h1>
+<p>An R port (keras3 1.5.1 on the torch backend) of the TabM framework applied to the bCCNN.</p>
+<blockquote class="blockquote">
+<p><strong>bCCNN.</strong> Gabrielli, A. (2020), <em>Claims reserving and neural networks</em>, PhD thesis ETH Zürich, Chapter 4 and Paper C (Gabrielli, Richman &amp; Wüthrich 2020, <em>Neural network embedding of the over-dispersed Poisson reserving model</em>, SAJ). The blended cross-classified network: a (20, 15, 10) tanh network started exactly in the chain-ladder (ccODP) model.</p>
+<p><strong>TabM.</strong> Gorishniy, Kotelnikov &amp; Babenko (2025), <em>TabM: Advancing tabular deep learning with parameter-efficient ensembling</em>, ICLR 2025. k weight-sharing “submodels” trained together in one network, prediction = mean of the k outputs.</p>
+</blockquote>
+<p>The mathematics is written out in the Python project’s <code>TabM_bCCNN_explained.md</code>; its equations (T1)–(T8), cited in the code, are summarised under <a href="#model-notes">Model notes</a> (see below). The data is the thesis’s seed-75 simulation (six lines of business, 12 × 12 triangles), a byte-identical copy of the Python project’s CSV.</p>
+<section id="the-six-configurations" class="level2">
+<h2 class="anchored" data-anchor-id="the-six-configurations">The six configurations</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>label</th>
+<th>model</th>
+<th>where</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>single_bccnn</code></td>
+<td>Paper C (13)/(14), Listing 4: one bCCNN with the trainable skip weight <code>w</code></td>
+<td><code>R/nn_models.R</code>, <code>bccnn_model()</code></td>
+</tr>
+<tr class="even">
+<td><code>tabm_tanh_signs</code></td>
+<td>TabM: k bCCNNs sharing their hidden weights, first adapter <code>R_1</code> random ±1</td>
+<td><code>R/nn_models.R</code>, <code>tabm_model()</code></td>
+</tr>
+<tr class="odd">
+<td><code>tabm_tanh_normal</code></td>
+<td>TabM with <code>R_1 ~ N(0,1)</code> (TabM’s rule for embedding inputs, App. A.2)</td>
+<td><code>R/nn_models.R</code>, <code>tabm_model()</code></td>
+</tr>
+<tr class="even">
+<td><code>tabm_relu_signs</code></td>
+<td>as <code>tabm_tanh_signs</code> with the TabM paper’s ReLU between layers</td>
+<td><code>R/nn_models.R</code>, <code>tabm_model()</code></td>
+</tr>
+<tr class="odd">
+<td><code>tabm_relu_normal</code></td>
+<td>as <code>tabm_tanh_normal</code> with ReLU</td>
+<td><code>R/nn_models.R</code>, <code>tabm_model()</code></td>
+</tr>
+<tr class="even">
+<td><code>packed_tanh</code></td>
+<td>deep ensemble: k fully independent bCCNNs trained in lockstep</td>
+<td><code>R/nn_models.R</code>, <code>tabm_model()</code></td>
+</tr>
+</tbody>
+</table>
+<p>Each configuration is a <code>{kind, r1_init, activation}</code> entry of <code>configs:</code> in <code>config.yml</code> (<code>kind</code>: <code>single</code>, <code>tabm</code> or <code>packed</code>); their order there is the column order of every table, and <code>pretty:</code> holds their labels in figures and tables.</p>
+<p>All ensembles: k = 20 (<code>tabm: k</code>), skip connection <code>alpha_hat_i + beta_hat_j</code> with weight 1 inside the exponential (thesis eq. (4.3)), heads initialised at <code>w = 0, w_0 = c_hat</code> so every submodel starts in the ccODP model (T5)–(T6), loss = Keras <code>poisson</code> on the observed <code>y</code> repeated in k columns (= TabM’s mean of the k individual losses), Keras <code>rmsprop</code> defaults, full batch, dropout 10 %.</p>
+</section>
+<section id="layout" class="level2">
+<h2 class="anchored" data-anchor-id="layout">Layout</h2>
+<ul>
+<li><code>analysis/00_setup.R</code>: sourced first by every script and by the tests (packages, <code>config.yml</code>, paths, Keras environment variables, functions in <code>R/</code>)</li>
+<li><code>analysis/</code>: one folder per step, run in this order
+<ul>
+<li><code>01_data and ccODP/data and ccODP.R</code>: triangles, split geometry, Paper C Table 2 (no Keras)</li>
+<li><code>02_validation curves/validation curves.R</code>: stage 1, validation curves of every configuration, one checkpoint per configuration</li>
+<li><code>03_stopping rules/stopping rules.R</code>: protocol minimum, elbow and its sensitivity, figures (no Keras)</li>
+<li><code>04_refit/refit.R</code>: stage 2, refits on the full triangle at the stops, one run per seed</li>
+<li><code>05_report/report.R</code>: comparison tables and figures (no Keras)</li>
+<li><code>06_bootstrap/bootstrap.R</code>: bootstrap RMSEP of the ensembles at the chosen stop</li>
+<li><code>run_all.ps1</code>: the whole chain, parallel by configuration / LoB</li>
+</ul></li>
+<li><code>R/</code>: functions only
+<ul>
+<li><code>triangles.R</code>: triangles, run-off mask, observed cells, 50/50 claims split (Listing 2), aggregation (Listing 3), time-aware split</li>
+<li><code>fit ODP GLM.R</code>: ccODP model (Paper C Section 2)</li>
+<li><code>loss functions.R</code>: Poisson deviance, collective and individual deviance (TabM (T8))</li>
+<li><code>early stopping.R</code>: stopping rules on the pooled validation curve</li>
+<li><code>nn_models.R</code>: BatchEnsemble and packed layers, single bCCNN and TabM networks, fitting with the curve recorder, predictions (Paper C Section 3, TabM)</li>
+<li><code>bootstrap.R</code>: parametric ODP bootstrap, reduced dispersion (Paper C Section 3.3.4)</li>
+<li><code>plots.R</code>: figures</li>
+</ul></li>
+<li><code>config.yml</code>: paths, data, splits, hyper-parameters, configurations, stopping rules, bootstrap (read with <code>config::get()</code>; profiles <code>default</code> and <code>quick</code>)</li>
+<li><code>data/raw</code> (never edited) -&gt; <code>data/processed</code>
+<ul>
+<li><code>data/raw</code>: <code>simulated_claims.csv</code> and <code>simulation_manifest.json</code> (copies of the Python project’s)</li>
+<li><code>data/processed</code>: checkpoints (<code>&lt;prefix&gt;_curves/</code>, <code>_refits/</code>, <code>_bootstrap/</code>) and what the later scripts read back (<code>&lt;prefix&gt;_selection.json</code>, <code>_curves.rds</code>, <code>_means.rds</code>); <code>data/processed/quick</code> for the quick profile</li>
+</ul></li>
+<li><code>output/</code>: regenerated by the scripts, never saved by hand: <code>tables/</code>, <code>figures/</code>, <code>logs/</code>; <code>output/quick</code> for the quick profile</li>
+<li><code>docs/</code>: architecture figure of <code>tabm_tanh_normal</code></li>
+<li><code>tests/</code>: checks of the functions in <code>R/</code> (<code>Rscript tests/testthat.R</code>)</li>
+<li><code>DESCRIPTION</code>: the packages used; it also marks the project root for <code>here::here()</code></li>
+<li><code>.lintr</code>: lintr settings (Masters-Research-R’s: default linters, snake_case names, lines up to 80 characters; <code>%&gt;%</code> as the only pipe)</li>
+<li><code>.Rprofile</code>: the Keras environment variables for interactive (RStudio) sessions</li>
+</ul>
+</section>
+<section id="environment" class="level2">
+<h2 class="anchored" data-anchor-id="environment">Environment</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>piece</th>
+<th>version</th>
+<th>note</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>R</td>
+<td>4.6.1</td>
+<td><code>C:\Program Files\R\R-4.6.1\bin\Rscript.exe</code></td>
+</tr>
+<tr class="even">
+<td>keras3 (R)</td>
+<td>1.5.1</td>
+<td>newest on CRAN at 24 Sep 2026</td>
+</tr>
+<tr class="odd">
+<td>reticulate</td>
+<td>1.46.0</td>
+<td>Python at <code>C:/Users/frang/.venvs/dlfa/Scripts/python.exe</code></td>
+</tr>
+<tr class="even">
+<td>keras (Python)</td>
+<td>3.15.1</td>
+<td>upgraded from 3.15.0 for this port: <code>python -m pip install --upgrade keras==3.15.1</code></td>
+</tr>
+<tr class="odd">
+<td>torch (Python)</td>
+<td>2.12.1 CPU</td>
+<td>the Keras backend; the same venv serves the Python project and the earlier R port</td>
+</tr>
+</tbody>
+</table>
+<p><code>KERAS_BACKEND=torch</code> and <code>RETICULATE_PYTHON</code> must be set <strong>before</strong> keras3 is loaded; <code>analysis/00_setup.R</code> sets them from <code>config.yml</code> (<code>keras:</code>) before it sources <code>R/</code>, and <code>.Rprofile</code> sets them for interactive sessions. Without <code>KERAS_BACKEND=torch</code>, <code>import keras</code> in this venv fails trying to load TensorFlow, which is not installed.</p>
+</section>
+<section id="settings" class="level2">
+<h2 class="anchored" data-anchor-id="settings">Settings</h2>
+<ul>
+<li><p><code>config.yml</code> holds everything that used to be a constant or a command-line flag: <code>paths</code>, <code>data</code> (6 LoBs, 12 development years, first accident year 1994, payments in thousands), <code>split</code>, <code>holdout</code>, the file <code>prefix</code> of each split, <code>epochs</code> per split, <code>seeds</code>, the <code>bccnn</code> hyper-parameters, <code>tabm: k</code>, <code>configs</code>, <code>pretty</code>, <code>stopping</code>, <code>bootstrap</code>, <code>force</code>, the Keras Python and backend, and <code>python_project</code> (the Python project, read by the parity tests).</p></li>
+<li><p>Profiles (<code>R_CONFIG_ACTIVE</code>):</p>
+<ul>
+<li><code>default</code>: the full run, outputs in <code>data/processed</code> and <code>output/</code>: 6,000 steps (time-aware) / 2,000 steps (claim-level), 5 seeds, k = 20, 25 bootstrap replicates</li>
+<li><code>quick</code>: the smallest run through every step, outputs in <code>data/processed/quick</code> and <code>output/quick</code>: 60 steps on both splits, 1 seed, k = 4, 2 replicates (checkpoint tags <code>e60_s1_h2_K4</code>, <code>e60_s1_K4</code>)</li>
+</ul></li>
+<li><p>A reduced run (fewer steps, seeds or submodels) gets a profile of its own with its own paths, so it never overwrites the full run’s tables; the logs of <code>run_all.ps1</code> go to <code>output/&lt;profile&gt;/logs</code>:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">reduced</span><span class="kw">:</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">paths</span><span class="kw">:</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">processed</span><span class="kw">:</span><span class="at"> data/processed/reduced</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">tables</span><span class="kw">:</span><span class="at"> output/reduced/tables</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">figures</span><span class="kw">:</span><span class="at"> output/reduced/figures</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">logs</span><span class="kw">:</span><span class="at"> output/reduced/logs</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">epochs</span><span class="kw">:</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">time-aware</span><span class="kw">:</span><span class="at"> </span><span class="dv">1500</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">seeds</span><span class="kw">:</span><span class="at"> </span><span class="dv">2</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>and <code>powershell -ExecutionPolicy Bypass -File analysis/run_all.ps1 -Config reduced</code>.</p></li>
+<li><p>Checkpoints are tagged <code>e&lt;steps&gt;_s&lt;seeds&gt;_h&lt;holdout&gt;_K&lt;k&gt;</code> (time-aware) or <code>e&lt;steps&gt;_s&lt;seeds&gt;_K&lt;k&gt;</code> (claim-level); a rerun with the same settings reloads what exists (04 only for the same stops), <code>force: true</code> redoes it. A process killed while writing can leave a truncated <code>.rds</code>: delete it or rerun with <code>force: true</code>.</p></li>
+<li><p>Pitfalls: a profile never overrides <code>configs</code> (a profile’s keys move to the end of their list, and that order is the table order); an unknown profile silently falls back to <code>default</code> (hence the line <code>config profile: ... | tables in ...</code> that <code>00_setup.R</code> prints); YAML reads a key <code>n</code> as FALSE, <code>1e-7</code> as text (write <code>1.0e-07</code>) and a bare <code>300</code> as a number (quote <code>"300"</code>).</p></li>
+</ul>
+</section>
+<section id="running" class="level2">
+<h2 class="anchored" data-anchor-id="running">Running</h2>
+<p>From the project root, with <code>Rscript</code> = <code>"C:/Program Files/R/R-4.6.1/bin/Rscript.exe"</code>.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">Rscript</span> tests/testthat.R                       <span class="co"># all checks</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="va">TABM_QUICK_TESTS</span><span class="op">=</span>1 <span class="ex">Rscript</span> tests/testthat.R    <span class="co"># fewer LoBs and submodels in the Keras checks</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="va">TABM_SKIP_KERAS</span><span class="op">=</span>1 <span class="ex">Rscript</span> tests/testthat.R     <span class="co"># without Python / Keras</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">powershell</span> <span class="at">-ExecutionPolicy</span> Bypass <span class="at">-File</span> analysis/run_all.ps1 <span class="at">-Quick</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">powershell</span> <span class="at">-ExecutionPolicy</span> Bypass <span class="at">-File</span> analysis/run_all.ps1 <span class="at">-Detach</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="ex">powershell</span> <span class="at">-ExecutionPolicy</span> Bypass <span class="at">-File</span> analysis/run_all.ps1 <span class="at">-Config</span> reduced <span class="at">-Detach</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<ul>
+<li>The chain: 01 → 02–05 on the time-aware split → 02–05 on the claim-level split (<code>-SkipClaimSplit</code>) → 06 bootstrap (<code>-SkipBootstrap</code>) → tests on the default profile (<code>-SkipTests</code>). <code>-Config &lt;profile&gt;</code> sets <code>R_CONFIG_ACTIVE</code> for every R process; <code>-Quick</code> is <code>-Config quick</code> with one process at a time.</li>
+<li>02 and 04 run the six configurations as parallel processes (<code>-Parallel 6</code>) with 3 torch threads each (<code>-Threads 3</code>); 06 runs one process per LoB and then one call without arguments that assembles the table.</li>
+<li><code>-Detach</code> relaunches the chain hidden; follow <code>output/logs/run_all_log.txt</code> (UTF-16, as PowerShell writes it). Each step’s own output is in <code>output/logs/&lt;step&gt;_&lt;split&gt;[_&lt;configuration or LoB&gt;]_log.txt</code> (UTF-8; <code>_err.txt</code> holds stderr of the parallel processes), with the step ids <code>01_data_and_ccodp</code>, <code>02_curves</code>, <code>03_select</code>, <code>04_refit</code>, <code>05_report</code>, <code>06_bootstrap</code>. Other profiles log to <code>output/&lt;profile&gt;/logs</code>.</li>
+</ul>
+<p>Single steps take positional arguments; without them (also when run in RStudio) a script uses <code>split</code> of <code>config.yml</code>, all six configurations and every LoB:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">Rscript</span> <span class="st">"analysis/01_data and ccODP/data and ccODP.R"</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="ex">Rscript</span> <span class="st">"analysis/02_validation curves/validation curves.R"</span> time-aware tabm_tanh_signs 3</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="ex">Rscript</span> <span class="st">"analysis/03_stopping rules/stopping rules.R"</span> time-aware</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="ex">Rscript</span> analysis/04_refit/refit.R claim-level all</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="ex">Rscript</span> analysis/05_report/report.R claim-level</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="ex">Rscript</span> analysis/06_bootstrap/bootstrap.R 2 3</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="va">R_CONFIG_ACTIVE</span><span class="op">=</span>quick <span class="ex">Rscript</span> analysis/05_report/report.R</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>script</th>
+<th>positional arguments</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>01</td>
+<td>none</td>
+</tr>
+<tr class="even">
+<td>02, 04</td>
+<td><code>[split] [configuration or all] [torch threads]</code></td>
+</tr>
+<tr class="odd">
+<td>03, 05</td>
+<td><code>[split]</code></td>
+</tr>
+<tr class="even">
+<td>06</td>
+<td><code>[LoB; 0 = every LoB, then assemble] [torch threads]</code>; the split is <code>bootstrap: split</code></td>
+</tr>
+</tbody>
+</table>
+<p>Without a thread count torch uses its default (every core).</p>
+<p>Outputs (<code>&lt;prefix&gt;</code> = <code>tabm_time_aware</code> or <code>tabm_claim_split</code>) in <code>data/processed/</code>, <code>output/tables/</code> and <code>output/figures/</code>:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>step</th>
+<th><code>data/processed/</code></th>
+<th><code>output/tables/</code>, <code>output/figures/</code></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>01</td>
+<td></td>
+<td><code>table2_ccodp.csv</code> (Paper C Table 2 per LoB, plus the ccODP of the two training triangles), <code>time_aware_geometry.json</code></td>
+</tr>
+<tr class="even">
+<td>02</td>
+<td><code>&lt;prefix&gt;_curves/&lt;label&gt;_&lt;tag&gt;.rds</code></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>03</td>
+<td><code>&lt;prefix&gt;_selection.json</code>, <code>&lt;prefix&gt;_curves.rds</code></td>
+<td><code>&lt;prefix&gt;_curves.csv</code>, <code>&lt;prefix&gt;_elbow_sensitivity.csv</code>, <code>&lt;prefix&gt;_figure2_&lt;label&gt;.png</code>, <code>&lt;prefix&gt;_pooled.png</code></td>
+</tr>
+<tr class="even">
+<td>04</td>
+<td><code>&lt;prefix&gt;_refits/&lt;label&gt;_refit_&lt;tag&gt;.rds</code></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>05</td>
+<td><code>&lt;prefix&gt;_means.rds</code></td>
+<td><code>&lt;prefix&gt;_table.csv</code>, <code>tabm_summary_time_aware.csv</code> / <code>tabm_summary_claim_split.csv</code> and <code>..._all_rules.csv</code>, <code>&lt;prefix&gt;_submodel_reserves.csv</code>, <code>&lt;prefix&gt;_bias_comparison.png</code>, <code>&lt;prefix&gt;_submodel_reserves.png</code></td>
+</tr>
+<tr class="even">
+<td>06</td>
+<td><code>tabm_time_aware_bootstrap/ccodp_lob&lt;m&gt;_r&lt;R&gt;.json</code> and <code>&lt;label&gt;_&lt;rule&gt;_lob&lt;m&gt;_r&lt;R&gt;_&lt;tag&gt;.json</code></td>
+<td><code>tabm_time_aware_bootstrap_&lt;rule&gt;.csv</code> (Table 5 analogue)</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="protocol-paper-c-section-3.3-with-two-validation-splits" class="level2">
+<h2 class="anchored" data-anchor-id="protocol-paper-c-section-3.3-with-two-validation-splits">Protocol (Paper C Section 3.3, with two validation splits)</h2>
+<ol type="1">
+<li><strong>Validation split</strong> (<code>split</code>, <code>holdout</code>). <em>Time-aware</em>: the training triangle is the triangle as it stood two calendar years before valuation (10 × 10, 55 cells); the validation cells are the next two diagonals (17 of the 23 held-out cells; the 6 whose accident or development year has no ccODP parameter in the training triangle cannot be predicted and are excluded). <em>Claim-level</em>: Paper C’s 50/50 split of the individual claims, both halves aggregated to 78-cell triangles.</li>
+<li><strong>Stage 1</strong> (02). ccODP MLE on the training triangle; every model starts in it; full-batch gradient descent for the whole window (<code>epochs</code>: 6,000 steps time-aware, 2,000 claim-level); after every step the deviance of the collective prediction (and of the individual submodels) on the training and the validation cells, dropout off, averaged over 5 seeds (<code>seeds</code>).</li>
+<li><strong>Stopping rules</strong> (03, <code>stopping</code>) on the pooled curve (each LoB normalised by its ccODP start, averaged): the smoothed (51-step) <strong>minimum</strong> = the thesis’s rule (the “protocol” stop); the slope <strong>elbow</strong> (first step after which the next 200 steps gain less than 1 % of the gain so far); the paper’s fixed <strong>300</strong>.</li>
+<li><strong>Stage 2</strong> (04, 05). ccODP MLE on the full 12 × 12 upper triangle; every model started in it and refitted for each stop (one run per seed, snapshots at the stops); reserves = sum of the lower-triangle collective means; bias against the true reserves; lower-triangle deviance; seed spread; submodel diversity.</li>
+<li><strong>Bootstrap</strong> (06, <code>bootstrap</code>). Parametric ODP bootstrap around the fitted means with the reduced dispersion of Paper C Sec. 3.3.2, 25 replicates, one ensemble fit per replicate, at the elbow stop by default.</li>
+</ol>
+</section>
+<section id="model-notes" class="level2">
+<h2 class="anchored" data-anchor-id="model-notes">Model notes</h2>
+<section id="ccodp-model-rfit-odp-glm.r" class="level3">
+<h3 class="anchored" data-anchor-id="ccodp-model-rfit-odp-glm.r">ccODP model ( <code>R/fit ODP GLM.R</code>)</h3>
+<pre><code>E[Y_ij] = mu_ij = exp(c + alpha_i + beta_j),    Var[Y_ij] = phi * mu_ij                 (1)
+L = 2 * sum over the observed cells of ( mu - y + y * log(y / mu) ),  y log y = 0 at y = 0   (4)
+phi_hat = L / (number of observed cells - number of parameters) = L / (78 - 23) = L / 55     (5)</code></pre>
+<ul>
+<li>Corner constraints: alpha and beta of the first accident and development year are 0. <code>glm(y ~ ay + dy, family = quasipoisson())</code> with R’s treatment contrasts is exactly that parametrisation; <code>glm.control(epsilon = 1e-14, maxit = 100)</code>; the coefficients are taken by position (intercept c, then the 11 accident-year and the 11 development-year effects).</li>
+<li>The means over the whole rectangle, <code>exp(c + alpha_i + beta_j)</code>, are computed from the coefficients, the arithmetic the network’s skip connection performs; the reserve is their sum over the lower triangle (by accident year and in total).</li>
+<li><ol start="4" type="1">
+<li>is the deviance loss with phi = 1; (5) is the deviance-based dispersion the paper uses (<code>summary(fit)$dispersion</code> would be the Pearson one).</li>
+</ol></li>
+<li>The ML fit reproduces the volume-weighted chain ladder exactly under certain conditions: 01 checks it with <code>stopifnot()</code> against the ChainLadder package, and so does test-ccodp.</li>
+</ul>
+</section>
+<section id="data-paper-c-listings-2-and-3-rtriangles.r" class="level3">
+<h3 class="anchored" data-anchor-id="data-paper-c-listings-2-and-3-rtriangles.r">Data (Paper C Listings 2 and 3; <code>R/triangles.R</code>)</h3>
+<ul>
+<li>A triangle holds the complete rectangle of incremental payments, observed and future (known because the data is simulated: the backtest truth, never seen by a fit), and the mask of the cells observed at valuation. Every fit goes through <code>train_cells()</code>: the observed cells (i, j, y) in row-major order, i slowest . The run-off mask is i + j &lt; n with 0-based indices, leading to 78 cells of a 12 × 12 triangle.</li>
+<li>Listing 2, the 50/50 claims split: order the claims by (LoB, AY) (a stable order, so within an accident year the claims keep their simulation order) and assign 1, 2, 1, 2, … down that order. Every (LoB, AY) group splits evenly (off by one when its size is odd). The ccODP parameters are volume dependent, so both halves must carry (nearly) equally many claims per LoB and accident year for parameters fitted on one to be meaningful on the other.</li>
+<li>Listing 3: aggregate each portfolio to LoB × AY × DY incremental payments (columns <code>Pay00</code> .. <code>Pay11</code>), divide by 1,000 (thousands), relabel accident years 1994–2005 as 0–11. The valuation date is the end of 2005, so AY + DY ≤ 2005 is the observed upper triangle D_I of 78 cells per LoB.</li>
+<li><code>lob_triangles()</code> gives per LoB the triangles <code>full</code>, <code>train</code> and <code>validation</code> (the two halves), all with the same run-off mask.</li>
+</ul>
+</section>
+<section id="time-aware-split-time_aware_split" class="level3">
+<h3 class="anchored" data-anchor-id="time-aware-split-time_aware_split">Time-aware split (<code>time_aware_split()</code>)</h3>
+<p>Paper C’s validation triangle is the upper triangle of an independent half-portfolio. The time-aware split holds out the final h calendar years (<code>holdout: 2</code>) instead. With 0-based i, j and calendar index t = i + j (the upper triangle is t ≤ n − 1):</p>
+<pre><code>training   : t &lt;= n - 1 - h                                   the triangle as it stood h years earlier
+validation : n - h &lt;= t &lt;= n - 1, restricted to i, j &lt;= n - 1 - h</code></pre>
+<ul>
+<li>The training set is itself a complete run-off triangle over n − h years, so its ccODP MLE gives alpha_i and beta_j for every year it contains; the validation cells are the first h diagonals below it: an out-of-time backtest of exactly the extrapolation a reserve needs.</li>
+<li>The restriction is forced: a held-out cell whose accident or development year is not in the training triangle has no alpha_i or beta_j, and no model can predict it.</li>
+<li>n = 12, h = 2: a 10 × 10 training triangle with 55 cells, 17 validation cells (calendar indices 10 and 11), and 6 of the 23 held-out cells excluded: (0,10), (0,11), (1,10), (10,0), (10,1), (11,0).</li>
+<li>Both sets are triangles over the 10 × 10 square, so <code>train_cells()</code> of the one gives the fitting cells and of the other the validation cells.</li>
+</ul>
+</section>
+<section id="single-bccnn-paper-c-1314-listing-4-bccnn_model" class="level3">
+<h3 class="anchored" data-anchor-id="single-bccnn-paper-c-1314-listing-4-bccnn_model">Single bCCNN (Paper C (13)/(14), Listing 4; <code>bccnn_model()</code>)</h3>
+<pre><code>mu(i,j) = exp( w * (alpha_i + beta_j) + c_D + &lt; B_D, z(i,j) &gt; )        (13)
+start:    w = 1,  c_D = c_hat (ccODP intercept),  B_D = 0                (14)</code></pre>
+<ul>
+<li>alpha_i and beta_j are the ccODP MLEs, frozen in embedding layers (<code>AY_embed</code>, <code>DY_embed</code>); <code>CC0</code> is their sum (the skip connection); <code>concate0</code> = (alpha_i, beta_j) feeds three tanh layers (20, 15, 10) with dropout 0.1 after each (<code>hidden1</code>..<code>hidden3</code>, <code>dropout1</code>..<code>dropout3</code>); <code>Response</code> is an exponential dense layer on (<code>CC0</code>, network output) with kernel (1, 0, …, 0) and bias c_hat.</li>
+<li>Before the first step the network <em>is</em> the ccODP model and its reserve the chain-ladder reserve. Unlike the ensembles it keeps Paper C’s trainable <code>w</code>, as Listing 4 does. Hidden layers: Keras’ glorot_uniform kernels and zero biases.</li>
+<li>Its submodel means are an array (1, n, n), so every configuration goes through the same code.</li>
+</ul>
+</section>
+<section id="tabm-bccnn-t1t8-tabm_model-tabm-sections-3.23.3-thesis-4.34.4-paper-c-10" class="level3">
+<h3 class="anchored" data-anchor-id="tabm-bccnn-t1t8-tabm_model-tabm-sections-3.23.3-thesis-4.34.4-paper-c-10">TabM-bCCNN, (T1)–(T8) (<code>tabm_model()</code>; TabM Sections 3.2–3.3, thesis (4.3)–(4.4), Paper C (10))</h3>
+<p>For a cell (i, j) and submodel l = 1, …, k (<code>*</code> elementwise):</p>
+<pre><code>z_0(i,j)     = (alpha_i, beta_j)'                                        frozen ccODP MLEs
+z_d^(l)(i,j) = act( c_d^(l) + s_d^(l) * B_d' (r_d^(l) * z_{d-1}^(l)) )   d = 1, 2, 3     (T1)
+eta^(l)(i,j) = w_0^(l) + &lt; w^(l), z_3^(l)(i,j) &gt;                         one head per submodel
+mu^(l)(i,j)  = exp( alpha_i + beta_j + eta^(l)(i,j) )                    skip connection, (4.3)
+mu_bar(i,j)  = (1/k) sum_l mu^(l)(i,j)                                   the TabM prediction</code></pre>
+<ul>
+<li>The matrices B_d are shared by all submodels; each submodel owns only its adapter rows r, s, c and its head.</li>
+<li>(T2) Submodel l has the effective weight matrix <code>B_d * outer(r_d^(l), s_d^(l))</code>: a rank-one re-scaling of the shared matrix, not a free matrix.</li>
+<li>(T3) The BatchEnsemble layer (<code>layer_batch_ensemble</code>, Keras class <code>BatchEnsembleLinear</code>) works on tensors with a submodel axis, shape (n, k, q): <code>Z_d = ((Z_{d-1} * R_d) B_d) * S_d + C_d</code>, with one row of R (k × q_in), S and C (k × q_out) per submodel, broadcast over the batch. A layer that multiplies such a tensor by one matrix applies the same B to every submodel, so weight sharing is the default. B starts at glorot_uniform, S at ones, C at zeros.</li>
+<li>(T4) The skip connection alpha_i + beta_j enters inside the exponential with weight 1, broadcast over the k submodels, without an adapter (thesis (4.3)); Paper C’s trainable <code>w</code> is used only in the single bCCNN.</li>
+<li>(T5) The heads start at w^(l) = 0 and w_0^(l) = c_hat, so (T6) every submodel and the ensemble start exactly in the ccODP model, whatever the hidden layers look like.</li>
+<li>(T7) The target is the observed y repeated in k columns: Keras’ <code>poisson</code> loss, a mean over the last axis and then over the batch, is TabM’s mean of the k individual losses, and nothing in the loss couples the submodels. The batch is the whole triangle, so TabM’s shared-batch / own-batch distinction (its Sec. 3.4) does not arise.</li>
+<li>(T8) The individual deviance, the mean over l of the deviance of mu^(l), is the scale the training objective works on (TabM’s “individual” curve); the collective deviance is that of mu_bar.</li>
+<li><code>kind: tabm</code>: (T1) with the very first adapter R_1 random, ±1 (<code>r1_init: signs</code>, TabM Sec. 3.2) or N(0,1) (<code>normal</code>, TabM App. A.2 for embedding inputs, which the ccODP inputs are), and every other multiplicative adapter exactly 1 (“TabM = BatchEnsemble + better initialisation”): at the start the submodels differ only through R_1. R_1 is drawn from R’s RNG (<code>sample()</code> / <code>rnorm()</code>) inside <code>tabm_model()</code>, where the first BatchEnsemble layer is built, after <code>nn_fit()</code> has called <code>set_random_seed()</code></li>
+<li><code>kind: packed</code>: k fully independent networks (no sharing, no adapters) trained together on the same data: the deep ensemble of k bCCNNs that TabM is meant to replace, run in lockstep so that its collective validation curve can be tracked too. <code>layer_packed_linear</code> (<code>PackedLinear</code>) evaluates <code>out[n, l, ] = Z[n, l, ] W[l, , ] + b[l, ]</code> with one einsum, each kernel drawn from U(±sqrt(6 / (q_in + q_out))) like an ordinary dense kernel; it also holds the k heads of every ensemble.</li>
+<li>The k copies of z_0: (n, 2) → (n, 1, 2) → (n, k, 2) (<code>z0_row</code>, <code>copy_to_submodels</code>). Dropout on the 3-D tensor draws an independent mask for every (cell, submodel, unit), as <code>nn.Dropout</code> does in Python.</li>
+<li>Trainable parameters: 490 + 138 k for <code>tabm</code> (3,250 at k = 20), 546 k for <code>packed</code> (10,920) and 547 for the single bCCNN (the 24 frozen embedding weights not counted).</li>
+<li>The layer names are fixed, because the weights-parity test loads the Python weights by name: <code>be1</code> .. <code>be3</code> (tabm), <code>packed1</code> .. <code>packed3</code> (packed), <code>head</code>.</li>
+</ul>
+</section>
+<section id="training-and-curves-listing-4-nn_fit" class="level3">
+<h3 class="anchored" data-anchor-id="training-and-curves-listing-4-nn_fit">Training and curves (Listing 4; <code>nn_fit()</code>)</h3>
+<ul>
+<li>Full-batch gradient descent: one epoch is one step on all observed cells (batch size = number of cells, as Listing 4’s batch size |D_I| = 78), no shuffling, Keras RMSprop with lr 0.001, rho 0.9, epsilon 1e-7. Keras’ <code>poisson</code> loss, mean(mu − y log mu), differs from the deviance
+<ol start="4" type="1">
+<li>only by terms in y alone and a factor two, so the gradients are proportional.</li>
+</ol></li>
+<li>The curves (<code>train_collective</code>, <code>train_individual</code>, <code>validation_collective</code>, <code>validation_individual</code>): entry 1 is the ccODP start (0 steps), entry e + 1 the value after e steps, all from one forward pass over the k × n × n rectangle with dropout off (<code>nn_predict()</code>), in a <code>callback_lambda()</code>. Keras’ own <code>loss</code> (dropout on, before the step) is not used; Keras’ <code>poisson</code> loss on the validation cells serves only as a cross-check (test-tabm-history).</li>
+<li>The same pass stores the submodel means at the requested snapshot steps. Snapshots of one run equal separate runs stopped at those steps (same seed, same random stream), so 04 reads all three stops off one run per seed.</li>
+</ul>
+</section>
+<section id="stopping-rules-rearly-stopping.r" class="level3">
+<h3 class="anchored" data-anchor-id="stopping-rules-rearly-stopping.r">Stopping rules (<code>R/early stopping.R</code>)</h3>
+<p>Paper C reads “roughly 300” off a rough dropout curve by eye and uses it for all LoBs. Here every rule works on the pooled curve: per LoB the collective validation curve averaged over seeds and divided by its step-0 (ccODP) value, so the six portfolios weigh equally, then averaged over the LoBs. One shared step count per configuration comes out; every function returns a 0-based step count.</p>
+<ul>
+<li><p><strong>Protocol</strong> (the smoothed minimum): the argmin of the centred 51-step moving average (<code>smooth</code>). The edges where the window does not fit are dropped rather than padded, which would bias the minimum outwards. <code>at_edge()</code> flags a minimum in the last 51 steps of the window: the curve is still descending and the step is an artefact of the window.</p></li>
+<li><p><strong>Elbow</strong> : on the time-aware split the curves fall steeply and then drift along a flat plateau, so the minimum sits at the end of whatever window was searched. With s the smoothed curve (edges padded with the first / last interior value, so s keeps the length of the curve), the elbow is the first step t with</p>
+<pre><code>s(t) - s(t + window) &lt;= tol * (s(0) - s(t))    and    s(0) - s(t) &gt; 0</code></pre>
+<p>(<code>elbow_tol: 0.01</code>, <code>elbow_window: 200</code>), or the last step if that never happens. The sensitivity table repeats it for every tol in <code>tols</code> (0.005, 0.01, 0.02, 0.05).</p></li>
+<li><p><strong>300</strong>: the fixed step count of Paper C Sec. 3.3.3 (<code>fixed</code>), capped at the window length.</p></li>
+<li><p>The validation decrease at a stop (Paper C Table 3) is, per LoB, 100 (1 − v(t) / v(0)) with v the collective validation deviance.</p></li>
+</ul>
+</section>
+<section id="bootstrap-and-reduced-dispersion-paper-c-15-16-sections-3.3.2-and-3.3.4-rbootstrap.r" class="level3">
+<h3 class="anchored" data-anchor-id="bootstrap-and-reduced-dispersion-paper-c-15-16-sections-3.3.2-and-3.3.4-rbootstrap.r">Bootstrap and reduced dispersion (Paper C (15), (16), Sections 3.3.2 and 3.3.4; <code>R/bootstrap.R</code>)</h3>
+<ul>
+<li><p>The conditional RMSEP (15) splits into the process variance phi · R of (16), available in closed form (R the reserve), and the parameter estimation error, the standard deviation of the reserves refitted on bootstrap replicates:</p>
+<pre><code>rmsep = sqrt( phi * reserve + sd(bootstrap reserves)^2 )</code></pre></li>
+<li><p>Parametric bootstrap from assumption (1): Y* / phi ~ Poisson(mu / phi), so Y* = phi · Poisson(mu / phi), with mean mu and variance phi · mu (Model Assumptions 2.1). Only the upper triangle is resampled. Each replicate is refitted end to end: a fresh ccODP on the resampled triangle and from it a fresh network trained for the chosen number of steps (for an ensemble, one fit of all k submodels).</p></li>
+<li><p>ccODP bootstrap: mu and phi of the ccODP fit, seed <code>bootstrap: seed</code> + m − 1 for LoB m.</p></li>
+<li><p>Network bootstrap: mu is the seed-0 collective mean mu_bar at the chosen stop (<code>&lt;prefix&gt;_means.rds</code>) and the point reserve its lower-triangle sum. With s = <code>bootstrap: seed</code> + 50 + m − 1: since <code>set_random_seed()</code> also reseeds R’s RNG, all replicate triangles are drawn up front after <code>set.seed(s)</code>; the network of replicate r trains with seed s · 1000 + r − 1; the Keras session is cleared every 5 replicates; failed replicates are counted.</p></li>
+<li><p>Reduced dispersion (Sec. 3.3.2): the ccODP estimate (5) corrects the in-sample loss by the number of estimated parameters, which is meaningless for an early-stopped network with dropout. The paper scales phi_ODP down by the relative decrease of the validation loss over the selected number of steps, flooring a negative decrease at zero (its LoB 3, where the bCCNN does not improve out of sample):</p>
+<pre><code>phi_NN = phi_ODP * (1 - max(decrease, 0) / 100)</code></pre>
+<p>on the time-aware split the decrease is that of the collective validation deviance on the held-out diagonals at the chosen stop; no validation figure belongs to the fixed 300 steps, so they get no reduction.</p></li>
+<li><p>The default stop is the elbow.</p></li>
+</ul>
+</section>
+</section>
+<section id="correctness-gates-teststestthat" class="level2">
+<h2 class="anchored" data-anchor-id="correctness-gates-teststestthat">Correctness gates (tests/testthat)</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>file</th>
+<th>what it checks</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>test-aggregation.R</code></td>
+<td>Listing 2: the split is balanced within LoB and accident year and partitions the claims, the halves sum to the full triangle; Listing 3: shape, 78 observed cells, non-negative payments, thousands; the run-off mask; <code>train_cells()</code> is row-major and <code>future_cells()</code> its complement</td>
+</tr>
+<tr class="even">
+<td><code>test-ccodp.R</code></td>
+<td>ccODP == chain ladder of the ChainLadder package (<code>cl_reserves()</code>): total to 1e-10, by accident year to 1e-9; corner parametrisation; phi = deviance / 55; over-dispersion; the fitted means sum to the observations; zero deviance at saturation</td>
+</tr>
+<tr class="odd">
+<td><code>test-parity-python-data.R</code></td>
+<td>the claims CSV is byte-identical (md5) to the Python project’s; claim counts of Paper C Table 1; same triangles</td>
+</tr>
+<tr class="even">
+<td><code>test-time-split.R</code></td>
+<td>55/17 cells, the 6 excluded cells, no overlap; the training sub-triangle’s ccODP is its chain ladder (ChainLadder)</td>
+</tr>
+<tr class="odd">
+<td><code>test-early-stopping.R</code></td>
+<td>minimum and elbow rules against brute-force definitions; pooled curve, window edge, smoothing, averaging over seeds</td>
+</tr>
+<tr class="even">
+<td><code>test-tabm-layers.R</code></td>
+<td>(T2) per-submodel identity of the BatchEnsemble layer; packed layer; TabM initialisation (random first adapter, ones elsewhere, zero heads); parameter counts 3,250 / 10,920 / 547; weight order and names</td>
+</tr>
+<tr class="odd">
+<td><code>test-tabm-init.R</code></td>
+<td>(T6) every submodel of every configuration starts at the ccODP means on all six LoBs; zero steps = chain ladder; training lowers the deviance; Jensen; snapshots; frozen embeddings; k = 1 packed = plain network; the single bCCNN through the same interface</td>
+</tr>
+<tr class="even">
+<td><code>test-tabm-history.R</code></td>
+<td>the individual validation deviance recorded by <code>nn_fit()</code> == 2·n·Keras <code>poisson</code> loss + constant after every step, against a same-seed manual <code>fit()</code> whose callback evaluates <code>loss_poisson()</code> on the validation cells with dropout off; <code>evaluate()</code> after the last step agrees</td>
+</tr>
+<tr class="odd">
+<td><code>test-bootstrap.R</code></td>
+<td>sampler moments, dispersion floor, ccODP bootstrap scale, reproducible ensemble bootstrap</td>
+</tr>
+<tr class="even">
+<td><strong><code>test-parity-python-weights.R</code></strong></td>
+<td>with the Python-trained weights loaded (<code>scripts/16_export_r_parity.py</code> in the Python project), every configuration reproduces the Python predictions <strong>exactly</strong> (max relative gap 0.0 on all six)</td>
+</tr>
+<tr class="odd">
+<td><code>test-parity-python-results.R</code></td>
+<td>cross-project table checks once both runs exist: same held-out cells and ccODP start; true and chain-ladder reserves agree; the ensembles’ 300-step reserves within 3 % per LoB and 1.5 % in total</td>
+</tr>
+</tbody>
+</table>
+<p>The parity tests read the Python project at <code>python_project</code> of <code>config.yml</code> and skip without it. The tests of the removed input checks (negative payments, non-square triangles, silly hold-outs) went with those checks.</p>
+</section>
+<section id="results" class="level2">
+<h2 class="anchored" data-anchor-id="results">Results</h2>
+<p>RESULTS_PLACEHOLDER</p>
+</section>
+<section id="keras-3-in-r-what-bit" class="level2">
+<h2 class="anchored" data-anchor-id="keras-3-in-r-what-bit">Keras 3 in R: what bit</h2>
+<ul>
+<li><code>KERAS_BACKEND</code> / <code>RETICULATE_PYTHON</code> before keras3 loads: <code>analysis/00_setup.R</code> sets them before it sources <code>R/</code>, because sourcing <code>R/nn_models.R</code> loads the keras3 namespace. The <code>py_require()</code> warning (tensorflow, torchaudio) when Python starts is harmless.</li>
+<li><code>keras3::Layer()</code> is lazy (the Python class is made at its first use), so <code>R/nn_models.R</code> defines the two custom layers at its top level before <code>library(keras3)</code> and before Python starts.</li>
+<li><code>callback_lambda()</code> passes a <strong>1-based</strong> epoch in R (Python Keras: 0-based). <code>nn_fit()</code> counts its own steps instead of trusting the argument; the first version was one step off.</li>
+<li><code>initializer_constant()</code>, not <code>set_weights()</code> after the build (as Masters-Research-R’s bCCNN does): a constant draws no random numbers, while a default initialiser replaced later would, and every later Glorot draw and dropout seed would move.</li>
+<li><code>initializer_constant()</code> broadcasts a bare vector: pass matrices with explicit <code>dim</code>, and a scalar for a scalar bias (a 1×1 matrix makes a (1,1) variable where Keras declared (1,)).</li>
+<li>Keras’ <code>glorot_uniform</code> on a 3-D <code>(k, q_in, q_out)</code> weight multiplies the fans by k; the packed layer therefore draws <code>U(±sqrt(6/(q_in+q_out)))</code> explicitly.</li>
+<li>The Keras inputs are an <strong>unnamed</strong> positional list (accident year column, development year column), in the order of the model’s inputs; it gives the same results as the named list of the first version.</li>
+<li><code>%&gt;%</code> (re-exported by keras3) creates the layers in the same order as <code>|&gt;</code>: Keras draws initialiser and dropout seeds in construction order, so the pipe changes nothing.</li>
+<li>keras3 R ops take <strong>1-based</strong> axes: <code>op_repeat(x, k, axis = 2L)</code> is Python’s <code>axis = 1</code>.</li>
+<li><code>layer_lambda</code> on a 3-D tensor needs <code>output_shape</code>; a length-1 R vector reaches Python as a scalar (wrap in <code>array(x, dim = 1)</code> before <code>set_weights</code>).</li>
+<li><code>set_random_seed()</code> also reseeds R’s RNG: bootstrap triangles are drawn before any training.</li>
+<li>The deviance curves come from a <code>training = FALSE</code> forward pass in the callback, never from Keras’ <code>loss</code> (dropout on, before the step).</li>
+<li>On the torch backend, <code>fit(validation_data = )</code> and <code>evaluate()</code> during training draw from torch’s global RNG, which the (unseeded) dropout masks also use: a same-seed run with validation data leaves one without it from step 2 on. <code>nn_fit()</code> therefore scores the curves with direct <code>model(x, training = FALSE)</code> calls, which draw nothing.</li>
+<li>Torch’s thread count changes the <code>packed_tanh</code> einsum at about 1e-8 relative: bit-identical reruns need the same thread setting (<code>run_all.ps1 -Quick</code> passes none).</li>
+<li>One full-batch step on 78 cells costs ~33 ms at k = 20 in keras3 (PyTorch: 4 ms); the recorder adds ~15 ms; hence the parallel-by-configuration chain.</li>
+<li>PowerShell 5.1 has no <code>&amp;&amp;</code>; <code>Start-Process</code> joins its <code>-ArgumentList</code> without quoting, so <code>run_all.ps1</code> quotes the script paths (the folders have spaces) and passes <code>-WorkingDirectory</code> so that <code>here::here()</code> finds the project root; <code>Start-Process</code> logs are plain text, <code>*&gt;&gt;</code> writes UTF-16.</li>
+</ul>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

@@ -1,0 +1,5 @@
+linters: linters_with_defaults(
+    pipe_consistency_linter(pipe = "%>%"),
+    object_usage_linter = NULL
+  )
+encoding: "UTF-8"

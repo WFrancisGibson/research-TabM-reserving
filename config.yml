@@ -1,0 +1,78 @@
+default:
+  paths:                 # relative to the project root (here::here)
+    raw: data/raw        # simulated_claims.csv: the Python project's seed-75 copy (never edited)
+    processed: data/processed  # checkpoints tabm_<split>_curves/_refits/_bootstrap, selection,
+                               # curves and submodel means read by the later scripts
+    tables: output/tables
+    figures: output/figures
+    logs: output/logs    # run_all.ps1 step logs
+  keras:                 # absolute paths, so not under paths (here::here would prefix the root)
+    python: C:/Users/frang/.venvs/dlfa/Scripts/python.exe
+    backend: torch       # Keras 3 on torch (CPU); TensorFlow is not installed
+  python_project: "C:/Users/frang/OneDrive/Masters/Research/Python research/bCCNN embedding of the ccODP reserving model"
+  force: false           # true: redo the checkpoints that exist
+  data:                  # Paper C Listing 3
+    n_lob: 6             # lines of business
+    n_dev: 12            # 12 x 12 triangles: accident years 1994-2005 relabelled 0-11,
+                         # development years Pay00..Pay11 (never a key "n": YAML reads it as FALSE)
+    first_ay: 1994
+    scale: 1000          # payments in thousands (Listing 3)
+  split: time-aware      # validation split of scripts 02-05 run without arguments:
+                         # time-aware or claim-level (Paper C's 50/50 claims split)
+  holdout: 2             # time-aware split: the last 2 calendar years (55 / 17 cells)
+  prefix:                # file-name prefix of each split's outputs (the Python names)
+    time-aware: tabm_time_aware
+    claim-level: tabm_claim_split
+  epochs:                # stage-1 search window (full-batch gradient descent steps)
+    time-aware: 6000
+    claim-level: 2000
+  seeds: 5               # validation curves averaged over 5 seeds; refits: one run per seed
+  bccnn:                 # Paper C Listing 4, thesis Sec. 4.3
+    hidden: [20, 15, 10] # neurons of the 3 hidden layers
+    dropout: 0.1         # after every hidden layer
+    learning_rate: 0.001 # Keras RMSprop defaults, as Listing 4 uses (INFERRED)
+    rho: 0.9
+    epsilon: 1.0e-07     # keep the ".0": YAML reads 1e-7 as text
+  tabm:
+    k: 20                # submodels per ensemble (TabM uses 32)
+  configs:               # the six configurations, in the column order of every table
+    single_bccnn: {kind: single}                                      # Paper C (13)-(14): trainable w
+    tabm_tanh_signs: {kind: tabm, r1_init: signs, activation: tanh}   # TabM, R_1 = +-1 (Sec. 3.2)
+    tabm_tanh_normal: {kind: tabm, r1_init: normal, activation: tanh} # TabM, R_1 ~ N(0,1) (App. A.2)
+    tabm_relu_signs: {kind: tabm, r1_init: signs, activation: relu}   # TabM's own block activation
+    tabm_relu_normal: {kind: tabm, r1_init: normal, activation: relu}
+    packed_tanh: {kind: packed, r1_init: signs, activation: tanh}     # deep ensemble of k bCCNNs
+  pretty:                # labels of the configurations in figures and tables
+    single_bccnn: "single bCCNN"
+    tabm_tanh_signs: "TabM tanh +-1"
+    tabm_tanh_normal: "TabM tanh N(0,1)"
+    tabm_relu_signs: "TabM ReLU +-1"
+    tabm_relu_normal: "TabM ReLU N(0,1)"
+    packed_tanh: "deep ensemble tanh"
+  stopping:              # stopping rules on the pooled validation curve
+    smooth: 51           # centred moving average of the protocol minimum
+    elbow_tol: 0.01      # slope elbow: the next 200 steps gain < 1 % of the gain so far (INFERRED)
+    elbow_window: 200
+    tols: [0.005, 0.01, 0.02, 0.05]   # elbow sensitivity table
+    fixed: 300           # Paper C Sec. 3.3.3: the paper's step count (the stop named "300")
+  bootstrap:             # Paper C Sec. 3.3.4, parametric ODP bootstrap
+    split: time-aware
+    rule: elbow          # elbow, protocol or "300" (quoted: a bare 300 is a number)
+    replicates: 25
+    seed: 20200          # ccODP: seed + m - 1; networks: seed + 50 + m - 1 for LoB m
+    configs: [tabm_tanh_signs, tabm_tanh_normal, tabm_relu_signs, tabm_relu_normal, packed_tanh]
+
+quick:                   # R_CONFIG_ACTIVE=quick: the smallest run through every step
+  paths:
+    processed: data/processed/quick
+    tables: output/quick/tables
+    figures: output/quick/figures
+    logs: output/quick/logs
+  epochs:
+    time-aware: 60
+    claim-level: 60
+  seeds: 1
+  tabm:
+    k: 4
+  bootstrap:
+    replicates: 2

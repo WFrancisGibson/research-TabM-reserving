@@ -1,0 +1,9 @@
+.Rproj.user/
+.Rhistory
+*.tmp
+
+# data and regenerable outputs
+data/raw/*
+data/processed/*
+output/*
+!**/.gitkeep
